@@ -3,9 +3,13 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"text/template"
+
+	"github.com/mgutz/ansi"
 )
 
 func main() {
@@ -19,7 +23,13 @@ func z() error {
 	if len(os.Args) != 2 {
 		return errors.New("usage: json2tmpl z.tmpl < z.json")
 	}
-	tmpl, err := template.ParseFiles(os.Args[1])
+
+	tmplname := filepath.Base(os.Args[1])
+	tmpl, err := template.New(tmplname).Funcs(template.FuncMap{
+		"color": func(color string, arg interface{}) string {
+			return ansi.Color(fmt.Sprint(arg), color)
+		},
+	}).ParseFiles(os.Args[1])
 	if err != nil {
 		return err
 	}
@@ -29,5 +39,5 @@ func z() error {
 	if err := jsondec.Decode(&v); err != nil {
 		return err
 	}
-	return tmpl.Execute(os.Stdout, v)
+	return tmpl.ExecuteTemplate(os.Stdout, tmplname, v)
 }
